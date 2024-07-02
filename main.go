@@ -19,8 +19,8 @@ const (
 var (
 	count    uint32
 	size     uint32
-	interval uint16
-	timeout  uint16
+	interval uint32
+	timeout  uint32
 	target   string
 	verbose  bool
 )
@@ -28,8 +28,8 @@ var (
 func init() {
 	flag.Uint32VarP(&count, "count", "c", 10, "num. of icmp packets to send")
 	flag.Uint32VarP(&size, "size", "s", 24, "size of icmp packet payload to send(in bytes)")
-	flag.Uint16VarP(&interval, "interval", "i", 1000, "time interval between each icmp packet(in ms)")
-	flag.Uint16VarP(&timeout, "timeout", "t", 5000, "timeout for waiting for icmp response(in ms)")
+	flag.Uint32VarP(&interval, "interval", "i", 1000, "time interval between each icmp packet(in ms)")
+	flag.Uint32VarP(&timeout, "timeout", "t", 5000, "timeout for waiting for icmp response(in ms)")
 	flag.StringVarP(&target, "host", "h", "", "target host to ping")
 	flag.BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 }
@@ -50,15 +50,18 @@ func main() {
 	pinger.SetPrivileged(true)
 	pinger.Interval = time.Duration(interval) * time.Millisecond
 	pinger.Timeout = time.Duration(timeout) * time.Millisecond
-	pinger.Count = int(count)
 	pinger.Size = int(size)
+	if count != 0 {
+		pinger.Count = int(count)
+	}
 
 	// Listen for Ctrl-C.
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	go func() {
-		<-c
-		pinger.Stop()
+		for range c {
+			pinger.Stop()
+		}
 	}()
 
 	var (
